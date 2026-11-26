@@ -1,0 +1,1524 @@
+﻿Exp 11: LCS
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+using namespace std;
+ 
+string findLCS(const string& X, const string& Y) {
+    int m = X.length();
+    int n = Y.length();
+ 
+    vector<vector<int>> dp(m + 1, vector<int>(n + 1, 0));
+ 
+    for (int i = 1; i <= m; i++) {
+        for (int j = 1; j <= n; j++) {
+            if (X[i - 1] == Y[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+ 
+    string lcs = "";
+    int i = m, j = n;
+ 
+    while (i > 0 && j > 0) {
+        if (X[i - 1] == Y[j - 1]) {
+            lcs += X[i - 1];
+            i--;
+            j--;
+        } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+            i--;
+        } else {
+            j--;
+        }
+    }
+ 
+    reverse(lcs.begin(), lcs.end());
+    return lcs;
+}
+ 
+int main() {
+    string version1, version2;
+ 
+    cout << "Enter first source-code version: ";
+    getline(cin, version1);
+ 
+    cout << "Enter second source-code version: ";
+    getline(cin, version2);
+ 
+    string lcs = findLCS(version1, version2);
+ 
+    cout << "\nLongest Common Subsequence: " << lcs << endl;
+    cout << "Length of LCS: " << lcs.length() << endl;
+ 
+    return 0;
+}
+
+
+Exp: 10- 0/1 knapsack problem
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+ 
+int main() {
+    const int capacity = 15;
+    int n;
+    cout << "Enter number of items: ";
+    cin >> n;
+ 
+    if (n <= 0) {
+        cout << "Number of items must be positive.\n";
+        return 0;
+    }
+ 
+    vector<int> weight(n), value(n);
+    for (int i = 0; i < n; i++) {
+        cout << "Enter weight and value for item " << i + 1 << ": ";
+        cin >> weight[i] >> value[i];
+        if (weight[i] <= 0 || value[i] < 0) {
+            cout << "Weight must be positive and value non-negative.\n";
+            return 0;
+        }
+    }
+ 
+    // dp[i][w] = best value using the first i items at capacity w.
+    vector<vector<int>> dp(n + 1, vector<int>(capacity + 1, 0));
+    for (int i = 1; i <= n; i++) {
+        for (int w = 0; w <= capacity; w++) {
+            dp[i][w] = dp[i - 1][w];
+            if (weight[i - 1] <= w) {
+                dp[i][w] = max(dp[i][w],
+                    value[i - 1] + dp[i - 1][w - weight[i - 1]]);
+            }
+        }
+    }
+ 
+    cout << "\nMaximum total value: " << dp[n][capacity] << "\n";
+    vector<int> selected;
+    int w = capacity;
+    for (int i = n; i > 0; i--) {
+        if (dp[i][w] != dp[i - 1][w]) {
+            selected.push_back(i);
+            w -= weight[i - 1];
+        }
+    }
+    reverse(selected.begin(), selected.end());
+ 
+    int totalWeight = 0, totalValue = 0;
+    cout << "Selected items:\n";
+    for (int index : selected) {
+        cout << "Item " << index << " (weight = " << weight[index - 1]
+             << " kg, value = " << value[index - 1] << ")\n";
+        totalWeight += weight[index - 1];
+        totalValue += value[index - 1];
+    }
+    cout << "Total weight: " << totalWeight << " kg\n";
+    cout << "Maximum total value: " << totalValue << "\n";
+    return 0;
+}
+
+
+Exp9: Job Sequencing with Deadlines
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+using namespace std;
+ 
+struct Job {
+    string id;
+    int deadline;
+    int profit;
+};
+ 
+int main() {
+    int n;
+    cout << "Enter number of jobs: ";
+    cin >> n;
+    if (n <= 0) {
+        cout << "Number of jobs must be positive.\n";
+        return 0;
+    }
+    vector<Job> jobs(n);
+    for (int i = 0; i < n; i++) {
+        cout << "Enter job ID, deadline, and profit for job "
+             << i + 1 << ": ";
+        cin >> jobs[i].id >> jobs[i].deadline >> jobs[i].profit;
+ 
+        if (jobs[i].deadline < 1 || jobs[i].profit < 0) {
+            cout << "Deadline must be at least 1 and profit non-negative.\n";
+            return 0;
+        }
+    }
+ 
+    // Schedule jobs with higher profit first.
+    sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
+        if (a.profit == b.profit)
+            return a.deadline < b.deadline;
+        return a.profit > b.profit;
+    });
+ 
+    int maxDeadline = 0;
+    for (const Job& job : jobs)
+        maxDeadline = max(maxDeadline, job.deadline);
+    maxDeadline = min(maxDeadline, n);
+ 
+    // Each slot stores the index of a scheduled job, or -1 if empty.
+    vector<int> slot(maxDeadline + 1, -1);
+    vector<bool> selected(n, false);
+    int totalProfit = 0;
+ 
+    for (int i = 0; i < n; i++) {
+        int lastSlot = min(jobs[i].deadline, maxDeadline);
+        for (int s = lastSlot; s >= 1; s--) {
+            if (slot[s] == -1) {
+                slot[s] = i;
+                selected[i] = true;
+                totalProfit += jobs[i].profit;
+                break;
+            }
+        }
+    }
+ 
+    cout << "\nScheduled jobs by time slot:\n";
+    for (int s = 1; s <= maxDeadline; s++) {
+        if (slot[s] == -1) {
+            cout << "Slot " << s << ": Empty\n";
+        } else {
+            const Job& job = jobs[slot[s]];
+            cout << "Slot " << s << ": " << job.id
+                 << " (profit = " << job.profit << ")\n";
+        }
+    }
+ 
+    cout << "Maximum total profit: " << totalProfit << "\n";
+    cout << "Unscheduled jobs: ";
+    bool foundUnscheduled = false;
+    for (int i = 0; i < n; i++) {
+        if (!selected[i]) {
+            cout << jobs[i].id << " ";
+            foundUnscheduled = true;
+        }
+    }
+    if (!foundUnscheduled)
+        cout << "None";
+    cout << "\n";
+    return 0;
+}
+
+
+
+
+
+
+Exp8:Fractional Knapsack using Greedy
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iomanip>
+#include <string>
+using namespace std;
+ 
+struct Item {
+    int id;
+    double weight, profit, ratio;
+};
+ 
+void solveStrategy(vector<Item> items, int strategy,
+                   const string& title, double capacity) {
+    // strategy: 1 = maximum profit, 2 = maximum weight,
+    //           3 = maximum profit-to-weight ratio
+    if (strategy == 1) {
+        sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+            if (a.profit != b.profit) return a.profit > b.profit;
+            return a.id < b.id;
+        });
+    } else if (strategy == 2) {
+        sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+            if (a.weight != b.weight) return a.weight > b.weight;
+            return a.id < b.id;
+        });
+    } else {
+        sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+            if (a.ratio != b.ratio) return a.ratio > b.ratio;
+            return a.id < b.id;
+        });
+    }
+ 
+    double remaining = capacity;
+    double totalProfit = 0.0;
+ 
+    cout << "\n" << title << "\n";
+    cout << "Selection order: ";
+    for (size_t i = 0; i < items.size(); ++i) {
+        cout << "P" << items[i].id;
+        if (i + 1 < items.size()) cout << " -> ";
+    }
+    cout << "\nProduct selection:\n";
+ 
+    for (const Item& item : items) {
+        if (remaining <= 0.000001) break;
+ 
+        double selectedWeight = min(item.weight, remaining);
+        double fraction = selectedWeight / item.weight;
+        double earnedProfit = fraction * item.profit;
+ 
+        cout << "P" << item.id << ": selected "
+             << selectedWeight << " kg out of " << item.weight
+             << " kg (" << fraction * 100.0 << "%), profit = "
+             << earnedProfit << "\n";
+ 
+        totalProfit += earnedProfit;
+        remaining -= selectedWeight;
+    }
+ 
+    cout << "Total profit: " << totalProfit << "\n";
+    cout << "Capacity used: " << capacity - remaining << " kg\n";
+    cout << "Remaining capacity: " << remaining << " kg\n";
+}
+ 
+int main() {
+    const double CAPACITY = 50.0;
+    int n;
+ 
+    cout << "Enter number of products: ";
+    cin >> n;
+    if (n <= 0) {
+        cout << "Invalid number of products.\n";
+        return 0;
+    }
+ 
+    vector<Item> items(n);
+    for (int i = 0; i < n; ++i) {
+        items[i].id = i + 1;
+        cout << "Enter weight and profit for product " << i + 1 << ": ";
+        cin >> items[i].weight >> items[i].profit;
+        if (items[i].weight <= 0 || items[i].profit < 0) {
+            cout << "Weight must be positive and profit non-negative.\n";
+            return 0;
+        }
+        items[i].ratio = items[i].profit / items[i].weight;
+    }
+ 
+    cout << fixed << setprecision(2);
+    cout << "\nProduct Table\n";
+    cout << left << setw(12) << "Product"
+         << setw(15) << "Weight(kg)"
+         << setw(12) << "Profit" << "P/W Ratio\n";
+    for (const Item& item : items) {
+        cout << left << setw(12) << (string("P") + to_string(item.id))
+             << setw(15) << item.weight
+             << setw(12) << item.profit << item.ratio << "\n";
+    }
+ 
+    solveStrategy(items, 1, "1. Greedy by Maximum Profit", CAPACITY);
+    solveStrategy(items, 2, "2. Greedy by Maximum Weight", CAPACITY);
+    solveStrategy(items, 3, "3. Greedy by Maximum P/W Ratio", CAPACITY);
+ 
+    cout << "\nConclusion: For the Fractional Knapsack problem, "
+         << "the maximum P/W ratio strategy gives the optimal profit.\n";
+    return 0;
+}
+
+
+
+
+Exp7:Quick Sort
+#include <iostream>
+using namespace std;
+
+
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];  // Select last element as pivot
+    int i = low - 1;
+
+
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+
+
+    swap(arr[i + 1], arr[high]);
+
+
+    return i + 1;
+}
+
+
+void quickSort(int arr[], int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+
+
+        quickSort(arr, low, pi - 1);  // Sort left side
+        quickSort(arr, pi + 1, high); // Sort right side
+    }
+}
+
+
+int main() {
+    int n;
+
+
+    cout << "Enter the number of elements: ";
+    cin >> n;
+
+
+    int arr[n];
+
+
+    cout << "Enter the elements: ";
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+
+    quickSort(arr, 0, n - 1);
+
+
+    cout << "Sorted array: ";
+    for (int i = 0; i < n; i++) {
+        cout << arr[i] << " ";
+    }
+
+
+    return 0;
+}
+
+
+Exp6:Implementation of Merge Sort
+#include <iostream>
+using namespace std;
+
+
+void merge(int arr[], int low, int mid, int high) {
+
+
+    int i = low;
+    int j = mid + 1;
+    int k = 0;
+
+
+    int temp[100];
+
+
+    while (i <= mid && j <= high) {
+        if (arr[i] < arr[j]) {
+            temp[k] = arr[i];
+            i++;
+        }
+        else {
+            temp[k] = arr[j];
+            j++;
+        }
+        k++;
+    }
+
+
+    while (i <= mid) {
+        temp[k] = arr[i];
+        i++;
+        k++;
+    }
+
+
+    // Copy remaining elements from right subarray
+    while (j <= high) {
+        temp[k] = arr[j];
+        j++;
+        k++;
+    }
+
+
+    for (i = low, k = 0; i <= high; i++, k++) {
+        arr[i] = temp[k];
+    }
+}
+
+
+void mergeSort(int arr[], int low, int high) {
+
+
+    if (low < high) {
+
+
+        int mid = (low + high) / 2;
+
+
+        mergeSort(arr, low, mid);       // Sort left half
+        mergeSort(arr, mid + 1, high);  // Sort right half
+
+
+        merge(arr, low, mid, high);     // Merge both halves
+    }
+}
+
+
+int main() {
+
+
+    int n;
+
+
+    cout << "Enter number of elements: ";
+    cin >> n;
+
+
+    int arr[100];
+
+
+    cout << "Enter elements: ";
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+
+    mergeSort(arr, 0, n - 1);
+
+
+    cout << "Sorted array: ";
+
+
+    for (int i = 0; i < n; i++) {
+        cout << arr[i] << " ";
+    }
+
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+Exp5: Implementation of Binary Search Algorithm
+#include <iostream>
+#include <vector>
+using namespace std;
+
+
+// Function to perform Binary Search
+int binarySearch(vector<int> trainNumbers, int target) {
+    int low = 0;
+    int high = trainNumbers.size() - 1;
+
+
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+
+
+        // Train number found
+        if (trainNumbers[mid] == target) {
+            return mid;
+        }
+
+
+        // Search in left half
+        if (target < trainNumbers[mid]) {
+            high = mid - 1;
+        }
+        // Search in right half
+        else {
+            low = mid + 1;
+        }
+    }
+
+
+    // Train number not found
+    return -1;
+}
+
+
+int main() {
+    int n, target;
+
+
+    cout << "Enter number of trains: ";
+    cin >> n;
+
+
+    vector<int> trainNumbers(n);
+
+
+    cout << "Enter train numbers in sorted order:\n";
+    for (int i = 0; i < n; i++) {
+        cin >> trainNumbers[i];
+    }
+
+
+    cout << "Enter train number to search: ";
+    cin >> target;
+
+
+    int result = binarySearch(trainNumbers, target);
+
+
+    if (result != -1) {
+        cout << "\nTrain number " << target
+             << " is available.\n";
+        cout << "Found at position: " << result + 1 << endl;
+    } 
+    else {
+        cout << "\nTrain number " << target
+             << " is not available.\n";
+    }
+
+
+    return 0;
+}
+
+
+Exp4:  B+ tree
+
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+
+const int MAX_KEYS = 4;
+const int MIN_LEAF_KEYS = 2;
+const int MIN_CHILDREN = 3;
+
+
+class Node {
+public:
+    bool leaf;
+    vector<int> keys;
+    vector<Node*> child;
+    Node* next;
+
+
+    Node(bool isLeaf) {
+        leaf = isLeaf;
+        next = nullptr;
+    }
+};
+
+
+class BPlusTree {
+    Node* root = nullptr;
+
+
+    int minKey(Node* p) {
+        while (!p->leaf)
+            p = p->child[0];
+        return p->keys[0];
+    }
+
+
+    void rebuild(Node* p) {
+        p->keys.clear();
+        for (int i = 1; i < p->child.size(); i++)
+            p->keys.push_back(minKey(p->child[i]));
+    }
+
+
+    // Insertion
+    Node* insertRec(Node* p, int key) {
+        if (p->leaf) {
+            p->keys.insert(
+                lower_bound(p->keys.begin(), p->keys.end(), key),
+                key
+            );
+
+
+            if (p->keys.size() <= MAX_KEYS)
+                return nullptr;
+
+
+            Node* right = new Node(true);
+            int mid = (p->keys.size() + 1) / 2;
+
+
+            right->keys.assign(
+                p->keys.begin() + mid, p->keys.end()
+            );
+
+
+            p->keys.resize(mid);
+            right->next = p->next;
+            p->next = right;
+
+
+            return right;
+        }
+
+
+        int i = upper_bound(
+            p->keys.begin(), p->keys.end(), key
+        ) - p->keys.begin();
+
+
+        Node* right = insertRec(p->child[i], key);
+
+
+        if (right)
+            p->child.insert(p->child.begin() + i + 1, right);
+
+
+        rebuild(p);
+
+
+        if (p->child.size() <= MAX_KEYS + 1)
+            return nullptr;
+
+
+        Node* newRight = new Node(false);
+        int mid = p->child.size() / 2;
+
+
+        newRight->child.assign(
+            p->child.begin() + mid, p->child.end()
+        );
+
+
+        p->child.resize(mid);
+
+
+        rebuild(p);
+        rebuild(newRight);
+
+
+        return newRight;
+    }
+
+
+    // Check underflow
+    bool underflow(Node* p) {
+        if (p->leaf)
+            return p->keys.size() < MIN_LEAF_KEYS;
+
+
+        return p->child.size() < MIN_CHILDREN;
+    }
+
+
+    bool canLend(Node* p) {
+        if (p->leaf)
+            return p->keys.size() > MIN_LEAF_KEYS;
+
+
+        return p->child.size() > MIN_CHILDREN;
+    }
+
+
+    // Borrow or merge
+    void rebalance(Node* parent, int i) {
+        Node* cur = parent->child[i];
+
+
+        if (i > 0 && canLend(parent->child[i - 1])) {
+            Node* left = parent->child[i - 1];
+
+
+            if (cur->leaf) {
+                cur->keys.insert(
+                    cur->keys.begin(), left->keys.back()
+                );
+                left->keys.pop_back();
+            } else {
+                cur->child.insert(
+                    cur->child.begin(), left->child.back()
+                );
+                left->child.pop_back();
+                rebuild(left);
+                rebuild(cur);
+            }
+            return;
+        }
+
+
+        if (i + 1 < parent->child.size() &&
+            canLend(parent->child[i + 1])) {
+            Node* right = parent->child[i + 1];
+
+
+            if (cur->leaf) {
+                cur->keys.push_back(right->keys.front());
+                right->keys.erase(right->keys.begin());
+            } else {
+                cur->child.push_back(right->child.front());
+                right->child.erase(right->child.begin());
+                rebuild(cur);
+                rebuild(right);
+            }
+            return;
+        }
+
+
+        if (i > 0) {
+            Node* left = parent->child[i - 1];
+
+
+            if (cur->leaf) {
+                left->keys.insert(
+                    left->keys.end(),
+                    cur->keys.begin(), cur->keys.end()
+                );
+                left->next = cur->next;
+            } else {
+                left->child.insert(
+                    left->child.end(),
+                    cur->child.begin(), cur->child.end()
+                );
+                rebuild(left);
+            }
+
+
+            delete cur;
+            parent->child.erase(parent->child.begin() + i);
+        } else {
+            Node* right = parent->child[i + 1];
+
+
+            if (cur->leaf) {
+                cur->keys.insert(
+                    cur->keys.end(),
+                    right->keys.begin(), right->keys.end()
+                );
+                cur->next = right->next;
+            } else {
+                cur->child.insert(
+                    cur->child.end(),
+                    right->child.begin(), right->child.end()
+                );
+                rebuild(cur);
+            }
+
+
+            delete right;
+            parent->child.erase(parent->child.begin() + i + 1);
+        }
+    }
+
+
+    // Deletion
+    void eraseRec(Node* p, int key) {
+        if (p->leaf) {
+            auto it = lower_bound(
+                p->keys.begin(), p->keys.end(), key
+            );
+
+
+            if (it != p->keys.end() && *it == key)
+                p->keys.erase(it);
+
+
+            return;
+        }
+
+
+        int i = upper_bound(
+            p->keys.begin(), p->keys.end(), key
+        ) - p->keys.begin();
+
+
+        eraseRec(p->child[i], key);
+
+
+        if (underflow(p->child[i]))
+            rebalance(p, i);
+
+
+        rebuild(p);
+    }
+
+
+    // Searching
+    bool searchRec(Node* p, int key) {
+        if (!p)
+            return false;
+
+
+        if (p->leaf)
+            return binary_search(
+                p->keys.begin(), p->keys.end(), key
+            );
+
+
+        int i = upper_bound(
+            p->keys.begin(), p->keys.end(), key
+        ) - p->keys.begin();
+
+
+        return searchRec(p->child[i], key);
+    }
+
+
+    void destroy(Node* p) {
+        if (!p) return;
+
+
+        for (Node* c : p->child)
+            destroy(c);
+
+
+        delete p;
+    }
+
+
+public:
+    ~BPlusTree() {
+        destroy(root);
+    }
+
+
+    bool search(int key) {
+        return searchRec(root, key);
+    }
+
+
+    void insert(int key) {
+        if (search(key)) {
+            cout << "Duplicate key!\n";
+            return;
+        }
+
+
+        if (!root) {
+            root = new Node(true);
+            root->keys.push_back(key);
+            return;
+        }
+
+
+        Node* right = insertRec(root, key);
+
+
+        if (right) {
+            Node* newRoot = new Node(false);
+            newRoot->child.push_back(root);
+            newRoot->child.push_back(right);
+
+
+            rebuild(newRoot);
+            root = newRoot;
+        }
+    }
+
+
+    void remove(int key) {
+        if (!search(key)) {
+            cout << "Key not found!\n";
+            return;
+        }
+
+
+        eraseRec(root, key);
+
+
+        if (root && !root->leaf &&
+            root->child.size() == 1) {
+            Node* old = root;
+            root = root->child[0];
+            delete old;
+        }
+
+
+        if (root && root->leaf && root->keys.empty()) {
+            delete root;
+            root = nullptr;
+        }
+    }
+
+
+    // Display all leaf nodes
+    void display() {
+        if (!root) {
+            cout << "Tree is empty\n";
+            return;
+        }
+
+
+        Node* p = root;
+
+
+        while (!p->leaf)
+            p = p->child[0];
+
+
+        cout << "B+ Tree elements: ";
+
+
+        while (p) {
+            for (int x : p->keys)
+                cout << x << " ";
+
+
+            p = p->next;
+        }
+
+
+        cout << endl;
+    }
+};
+
+
+int main() {
+    BPlusTree tree;
+    int choice, key;
+
+
+    do {
+        cout << "\nB+ TREE OPERATIONS\n";
+        cout << "1. Insert\n";
+        cout << "2. Search\n";
+        cout << "3. Delete\n";
+        cout << "4. Display\n";
+        cout << "5. Exit\n";
+
+
+        cout << "Enter choice: ";
+        cin >> choice;
+
+
+        switch (choice) {
+            case 1:
+                cout << "Enter key: ";
+                cin >> key;
+                tree.insert(key);
+                break;
+
+
+            case 2:
+                cout << "Enter key: ";
+                cin >> key;
+
+
+                if (tree.search(key))
+                    cout << "Key found\n";
+                else
+                    cout << "Key not found\n";
+                break;
+
+
+            case 3:
+                cout << "Enter key: ";
+                cin >> key;
+                tree.remove(key);
+                break;
+
+
+            case 4:
+                tree.display();
+                break;
+
+
+            case 5:
+                cout << "Exiting...\n";
+                break;
+
+
+            default:
+                cout << "Invalid choice!\n";
+        }
+
+
+    } while (choice != 5);
+
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+Exp3 - B tree
+
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+
+const int T = 3;
+
+
+class Node {
+public:
+    vector<int> keys;
+    vector<Node*> child;
+    bool leaf;
+
+
+    Node(bool isLeaf) : leaf(isLeaf) {}
+
+
+    void traverse() {
+        int i;
+        for (i = 0; i < (int)keys.size(); i++) {
+            if (!leaf) child[i]->traverse();
+            cout << keys[i] << " ";
+        }
+        if (!leaf) child[i]->traverse();
+    }
+
+
+    bool search(int key) {
+        int i = 0;
+        while (i < (int)keys.size() && key > keys[i]) i++;
+        if (i < (int)keys.size() && keys[i] == key) return true;
+        return !leaf && child[i]->search(key);
+    }
+
+
+    void splitChild(int i) {
+        Node *y = child[i], *z = new Node(y->leaf);
+        int mid = y->keys[T - 1];
+        z->keys.assign(y->keys.begin() + T, y->keys.end());
+        y->keys.resize(T - 1);
+        if (!y->leaf) {
+            z->child.assign(y->child.begin() + T, y->child.end());
+            y->child.resize(T);
+        }
+        child.insert(child.begin() + i + 1, z);
+        keys.insert(keys.begin() + i, mid);
+    }
+
+
+    void insertNonFull(int key) {
+        int i = (int)keys.size() - 1;
+        if (leaf) {
+            while (i >= 0 && keys[i] > key) i--;
+            keys.insert(keys.begin() + i + 1, key);
+        } else {
+            while (i >= 0 && keys[i] > key) i--;
+            i++;
+            if ((int)child[i]->keys.size() == 2 * T - 1) {
+                splitChild(i);
+                if (key > keys[i]) i++;
+            }
+            child[i]->insertNonFull(key);
+        }
+    }
+
+
+    int findKey(int key) {
+        int i = 0;
+        while (i < (int)keys.size() && keys[i] < key) i++;
+        return i;
+    }
+
+
+    void remove(int key) {
+        int idx = findKey(key);
+        if (idx < (int)keys.size() && keys[idx] == key) {
+            if (leaf) keys.erase(keys.begin() + idx);
+            else removeInternal(idx);
+        } else if (!leaf) {
+            bool last = (idx == (int)keys.size());
+            if ((int)child[idx]->keys.size() < T) fill(idx);
+            if (last && idx > (int)keys.size()) child[idx - 1]->remove(key);
+            else child[idx]->remove(key);
+        }
+    }
+
+
+    int predecessor(int idx) {
+        Node *p = child[idx];
+        while (!p->leaf) p = p->child.back();
+        return p->keys.back();
+    }
+
+
+    int successor(int idx) {
+        Node *p = child[idx + 1];
+        while (!p->leaf) p = p->child[0];
+        return p->keys[0];
+    }
+
+
+    void removeInternal(int idx) {
+        int key = keys[idx];
+        if ((int)child[idx]->keys.size() >= T) {
+            int pred = predecessor(idx);
+            keys[idx] = pred;
+            child[idx]->remove(pred);
+        } else if ((int)child[idx + 1]->keys.size() >= T) {
+            int succ = successor(idx);
+            keys[idx] = succ;
+            child[idx + 1]->remove(succ);
+        } else {
+            merge(idx);
+            child[idx]->remove(key);
+        }
+    }
+
+
+    void fill(int idx) {
+        if (idx > 0 && (int)child[idx - 1]->keys.size() >= T) borrowPrev(idx);
+        else if (idx < (int)keys.size() && (int)child[idx + 1]->keys.size() >= T) borrowNext(idx);
+        else if (idx < (int)keys.size()) merge(idx);
+        else merge(idx - 1);
+    }
+
+
+    void borrowPrev(int idx) {
+        Node *c = child[idx], *s = child[idx - 1];
+        c->keys.insert(c->keys.begin(), keys[idx - 1]);
+        if (!c->leaf) {
+            c->child.insert(c->child.begin(), s->child.back());
+            s->child.pop_back();
+        }
+        keys[idx - 1] = s->keys.back();
+        s->keys.pop_back();
+    }
+
+
+    void borrowNext(int idx) {
+        Node *c = child[idx], *s = child[idx + 1];
+        c->keys.push_back(keys[idx]);
+        if (!c->leaf) {
+            c->child.push_back(s->child.front());
+            s->child.erase(s->child.begin());
+        }
+        keys[idx] = s->keys.front();
+        s->keys.erase(s->keys.begin());
+    }
+
+
+    void merge(int idx) {
+        Node *c = child[idx], *s = child[idx + 1];
+        c->keys.push_back(keys[idx]);
+        c->keys.insert(c->keys.end(), s->keys.begin(), s->keys.end());
+        if (!c->leaf) c->child.insert(c->child.end(), s->child.begin(), s->child.end());
+        keys.erase(keys.begin() + idx);
+        child.erase(child.begin() + idx + 1);
+        delete s;
+    }
+};
+
+
+class BTree {
+    Node *root = nullptr;
+
+
+    void destroy(Node *p) {
+        if (!p) return;
+        for (Node *c : p->child) destroy(c);
+        delete p;
+    }
+
+
+public:
+    ~BTree() { destroy(root); }
+
+
+    bool search(int key) { return root && root->search(key); }
+
+
+    void insert(int key) {
+        if (search(key)) {
+            cout << "Duplicate key!\n";
+            return;
+        }
+        if (!root) {
+            root = new Node(true);
+            root->keys.push_back(key);
+            return;
+        }
+        if ((int)root->keys.size() == 2 * T - 1) {
+            Node *s = new Node(false);
+            s->child.push_back(root);
+            s->splitChild(0);
+            int i = (key > s->keys[0]) ? 1 : 0;
+            s->child[i]->insertNonFull(key);
+            root = s;
+        } else root->insertNonFull(key);
+    }
+
+
+    void remove(int key) {
+        if (!search(key)) {
+            cout << "Key not found!\n";
+            return;
+        }
+        root->remove(key);
+        if (root->keys.empty()) {
+            Node *old = root;
+            root = root->leaf ? nullptr : root->child[0];
+            delete old;
+        }
+    }
+
+
+    void display() {
+        if (!root) cout << "Tree is empty";
+        else root->traverse();
+        cout << '\n';
+    }
+};
+
+
+int main() {
+    BTree tree;
+    int ch, key;
+    do {
+        cout << "\n1.Insert  2.Search  3.Delete  4.Display  5.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1:
+                cout << "Enter key: "; cin >> key;
+                tree.insert(key); break;
+            case 2:
+                cout << "Enter key: "; cin >> key;
+                cout << (tree.search(key) ? "Key found\n" : "Key not found\n"); break;
+            case 3:
+                cout << "Enter key: "; cin >> key;
+                tree.remove(key); break;
+            case 4: tree.display(); break;
+            case 5: cout << "Exiting...\n"; break;
+            default: cout << "Invalid choice!\n";
+        }
+    } while (ch != 5);
+    return 0;
+}
+
+
+
+
+
+
+Exp2: Master’s method
+
+
+#include <iostream>
+#include <cmath>
+#include <iomanip>
+using namespace std;
+
+
+int main()
+{
+    double a, b, k;
+    double log_b_a;
+
+
+    cout << "MASTER'S THEOREM ANALYZER\n";
+
+
+    cout << "\nFor recurrence: T(n) = aT(n/b) + Theta(n^k)\n";
+
+
+    cout << "\nEnter value of a: ";
+    cin >> a;
+
+
+    cout << "Enter value of b: ";
+    cin >> b;
+
+
+    cout << "Enter exponent k in f(n) = n^k: ";
+    cin >> k;
+
+
+    // Validate input
+    if (a < 1 || b <= 1 || k < 0)
+    {
+        cout << "\nInvalid input!";
+        cout << "\nEnter a >= 1, b > 1 and k >= 0.\n";
+        return 1;
+    }
+
+
+    // Calculate log base b of a
+    log_b_a = log(a) / log(b);
+
+
+    cout << fixed << setprecision(4);
+
+
+    cout << "\nNumerical Calculation\n";
+
+
+    cout << "\na = " << a << endl;
+    cout << "b = " << b << endl;
+    cout << "f(n) = Theta(n^" << k << ")\n";
+
+
+    cout << "\nlog_b(a) = log(" << a << ") / log(" << b << ")\n";
+    cout << "         = " << log_b_a << endl;
+
+
+    cout << "\nn^(log_b(a)) = n^" << log_b_a << endl;
+
+
+    // Compare k with log_b(a)
+
+
+    if (k < log_b_a)
+    {
+        cout << "\nCASE 1\n";
+
+
+        cout << "f(n) is polynomially smaller than ";
+        cout << "n^(log_b(a)).\n";
+
+
+        cout << "\nTherefore:\n";
+        cout << "T(n) = Theta(n^" << log_b_a << ")\n";
+    }
+
+
+    else if (fabs(k - log_b_a) < 0.000001)
+    {
+        cout << "\nCASE 2\n";
+
+
+        cout << "f(n) is asymptotically equal to ";
+        cout << "n^(log_b(a)).\n";
+
+
+        cout << "\nTherefore:\n";
+        cout << "T(n) = Theta(n^" << log_b_a << " log n)\n";
+    }
+
+
+    else
+    {
+        cout << "\nCASE 3\n";
+
+
+        cout << "f(n) is polynomially larger than ";
+        cout << "n^(log_b(a)).\n";
+
+
+        cout << "\nTherefore:\n";
+        cout << "T(n) = Theta(n^" << k << ")\n";
+    }
+
+
+    return 0;
+}
+
+
+
+
+Exp1:: Recursion tree
+
+
+#include <stdio.h>
+#include <math.h>
+
+
+int main()
+{
+    int a, b, k, n;
+    int level = 0;
+
+
+    double nodes, subproblemSize;
+    double costPerNode, totalCost;
+    double total = 0;
+
+
+    printf("RECURSION TREE METHOD\n");
+
+
+    printf("\nRecurrence form:\n");
+    printf("T(n) = aT(n/b) + n^k\n");
+
+
+    printf("\nEnter value of n: ");
+    scanf("%d", &n);
+
+
+    printf("Enter value of a (number of subproblems): ");
+    scanf("%d", &a);
+
+
+    printf("Enter value of b (division factor): ");
+    scanf("%d", &b);
+
+
+    printf("Enter value of k in f(n) = n^k: ");
+    scanf("%d", &k);
+
+
+    printf("\nRECURSION TREE ANALYSIS\n");
+
+
+    printf("\nRecurrence: T(n) = %dT(n/%d) + n^%d\n",
+           a, b, k);
+
+
+    printf("\n%-8s %-15s %-20s %-20s\n",
+           "Level", "Nodes", "Problem Size", "Cost at Level");
+
+
+    nodes = 1;
+    subproblemSize = n;
+
+
+    while (subproblemSize >= 1)
+    {
+        costPerNode = pow(subproblemSize, k);
+        totalCost = nodes * costPerNode;
+
+
+        printf("%-8d %-15.0f %-20.4f %-20.4f\n",
+               level, nodes, subproblemSize, totalCost);
+
+
+        total += totalCost;
+
+
+        nodes = nodes * a;
+        subproblemSize = subproblemSize / b;
+        level++;
+
+
+        if (subproblemSize < 1)
+            break;
+    }
+
+
+    printf("\nTotal cost of recursion tree = %.4f\n", total);
+
+
+    printf("\nNumber of levels = %d\n", level);
+
+
+    double p = log(a) / log(b);
+
+
+    printf("\nRESULT\n");
+
+
+    if (k < p)
+    {
+        printf("At each level, the cost increases.\n");
+        printf("Time Complexity = Theta(n^%.4f)\n", p);
+    }
+    else if (fabs(k - p) < 0.000001)
+    {
+        printf("Cost at every level is approximately the same.\n");
+        printf("Time Complexity = Theta(n^%.4f log n)\n", p);
+    }
+    else
+    {
+        printf("Cost decreases rapidly toward the leaf level.\n");
+        printf("Time Complexity = Theta(n^%d)\n", k);
+    }
+
+
+    return 0;
+}
